@@ -1,6 +1,6 @@
-Sample p5 sketch
+Mondrian Garage Door sketch
 ===
 
-This is just the skeleton that I use for creating a new p5 sketch.
+Installation piece for the glass garage door
 
 * [P5 Reference](https://p5js.org/reference/)
