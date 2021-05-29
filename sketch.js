@@ -12,14 +12,18 @@ let colors = [];
 
 function setup()
 {
+	frameRate(25);
 	createCanvas(windowWidth-10, windowHeight-10);
 	//createCanvas(windowWidth-10, windowHeight-10, WEBGL);
-	background(0);
+	background(255);
 
-	colors.push( color(255,0,0,80) );
-	colors.push( color(255,255,0,80) );
-	colors.push( color(0,0,255,80) );
+	colors.push( color(255,0,0,250) );
+	colors.push( color(255,255,0,250) );
+	colors.push( color(0,0,255,250) );
 
+	rects.push(new MovingRect());
+	rects.push(new MovingRect());
+	rects.push(new MovingRect());
 	rects.push(new MovingRect());
 	rects.push(new MovingRect());
 	rects.push(new MovingRect());
@@ -35,7 +39,6 @@ function setup()
 function door(x,y)
 {
 	push();
-	blendMode(BLEND);
 	translate(x,y);
 	fill(0,0,0,100);
 	noStroke();
@@ -64,29 +67,70 @@ function door(x,y)
 class MovingRect
 {
 draw() {
+	this.update();
+
 	strokeWeight(15);
 	stroke(0);
 
-	console.log(this)
 	fill(this.color);
 
 	rect(this.x, this.y, this.w, this.h);
 }
 
+update() {
+	if (this.sleep)
+	{
+		if (--this.sleep != 0)
+			return;
+
+		// done sleeping? choose a new action
+		return this.new_action();
+	}
+
+	// translate and scale, smoothly easing into the new parameter
+	const smooth = 32;
+	this.x = (this.x * smooth + this.new_x) / (smooth + 1);
+	this.y = (this.y * smooth + this.new_y) / (smooth + 1);
+	this.w = (this.w * smooth + this.new_w) / (smooth + 1);
+	this.h = (this.h * smooth + this.new_h) / (smooth + 1);
+
+	// if we're close enough, sleep for a little while
+	if (abs(this.new_x - this.x) < 1
+	&&  abs(this.new_y - this.y) < 1
+	&&  abs(this.new_w - this.w) < 1
+	&&  abs(this.new_h - this.h) < 1)
+		this.sleep = Math.floor(Math.random() * 100) + 30;
+}
+
+new_action()
+{
+	let action = Math.floor(Math.random() * 5);
+	if (action == 0)
+		this.sleep = Math.floor(Math.random() * 100) + 30;
+	if (action == 1)
+		this.new_x = this.random_x();
+	if (action == 2)
+		this.new_y = this.random_y();
+	if (action == 3)
+		this.new_w = this.random_w();
+	if (action == 4)
+		this.new_h = this.random_h();
+	console.log("NEW ACTION", action, this);
+}
+
 // something lined up with a square
 random_x() { return Math.floor(Math.random() * 16) * 1920 / 16 }
 random_y() { return Math.floor(Math.random() * 6) * 1080 / 6 }
-random_w() { return Math.floor(Math.random() * 8) * 1920 / 16 }
-random_h() { return Math.floor(Math.random() * 3) * 1080 / 6 }
+random_w() { return Math.floor(Math.random() * 8 + 1) * 1920 / 16 }
+random_h() { return Math.floor(Math.random() * 3 + 1) * 1080 / 6 }
 
 constructor() {
-	this.x = this.random_x();
-	this.y = this.random_y();
-	this.w = this.random_w();
-	this.h = this.random_h();
+	this.new_x = this.x = this.random_x();
+	this.new_y = this.y = this.random_y();
+	this.new_w = this.w = this.random_w();
+	this.new_h = this.h = this.random_h();
 	this.color = colors.sample();
-	this.motion = 0;
-	this.sleeptime = Math.random() * 10;
+	this.sleep = 30;
 }
 
 }
@@ -94,11 +138,13 @@ constructor() {
 function draw()
 {
 	// white background
-	background(255);
+	//blendMode(BLEND);
+	createCanvas(windowWidth-10, windowHeight-10);
+	background(255,255,255);
 
+	blendMode(MULTIPLY);
 	// adjust the scale so that the frame is 1920x1080
 	//scale(1920 / width);
-	blendMode(MULTIPLY);
 
 	for(r of rects)
 		r.draw();
