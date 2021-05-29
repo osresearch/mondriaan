@@ -16,6 +16,7 @@ function setup()
 function door(x,y)
 {
 	push();
+	blendMode(BLEND);
 	translate(x,y);
 	fill(0,0,0,100);
 	noStroke();
@@ -29,6 +30,10 @@ function door(x,y)
 	pop();
 }
 
+class MovingRect
+{
+}
+
 function draw()
 {
 	// white background
@@ -36,10 +41,21 @@ function draw()
 
 	// adjust the scale so that the frame is 1920x1080
 	//scale(1920 / width);
+	blendMode(MULTIPLY);
 
-	fill(255,0,0);
 	strokeWeight(15);
-	rect(20,50,800,300);
+	stroke(0);
+
+	fill(255,0,0,80);
+	rect(20,250,800,300);
+
+	fill(0,0,255,80);
+	rect(300,50,300,800);
+
+	//blendMode(LIGHTEST);
+	fill(255,255,0,80);
+	rect(100,350,300,300);
+
 
 	// draw the munton and door frames
 	door(0*480,0);
