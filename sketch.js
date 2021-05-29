@@ -17,10 +17,18 @@ function setup()
 	//createCanvas(windowWidth-10, windowHeight-10, WEBGL);
 	background(255);
 
+	// some "Solid" colors
 	colors.push( color(255,0,0,250) );
 	colors.push( color(255,255,0,250) );
 	colors.push( color(0,0,255,250) );
+	// some "Softer" colors
+	colors.push( color(255,0,0,180) );
+	colors.push( color(255,255,0,180) );
+	colors.push( color(0,0,255,180) );
+	//colors.push( color(0,0,0,250) );
 
+	rects.push(new MovingRect());
+	rects.push(new MovingRect());
 	rects.push(new MovingRect());
 	rects.push(new MovingRect());
 	rects.push(new MovingRect());
@@ -88,7 +96,7 @@ update() {
 	}
 
 	// translate and scale, smoothly easing into the new parameter
-	const smooth = 32;
+	const smooth = 128;
 	this.x = (this.x * smooth + this.new_x) / (smooth + 1);
 	this.y = (this.y * smooth + this.new_y) / (smooth + 1);
 	this.w = (this.w * smooth + this.new_w) / (smooth + 1);
@@ -104,18 +112,18 @@ update() {
 
 new_action()
 {
-	let action = Math.floor(Math.random() * 5);
-	if (action == 0)
+	let action = Math.floor(Math.random() * 8);
+	if (action < 4)
 		this.sleep = Math.floor(Math.random() * 100) + 30;
-	if (action == 1)
-		this.new_x = this.random_x();
-	if (action == 2)
-		this.new_y = this.random_y();
-	if (action == 3)
-		this.new_w = this.random_w();
 	if (action == 4)
+		this.new_x = this.random_x();
+	if (action == 5)
+		this.new_y = this.random_y();
+	if (action == 6)
+		this.new_w = this.random_w();
+	if (action == 7)
 		this.new_h = this.random_h();
-	console.log("NEW ACTION", action, this);
+	//console.log("NEW ACTION", action, this);
 }
 
 // something lined up with a square
@@ -138,8 +146,8 @@ constructor() {
 function draw()
 {
 	// white background
-	//blendMode(BLEND);
-	createCanvas(windowWidth-10, windowHeight-10);
+	//createCanvas(windowWidth-10, windowHeight-10);
+	blendMode(BLEND);
 	background(255,255,255);
 
 	blendMode(MULTIPLY);
@@ -150,6 +158,7 @@ function draw()
 		r.draw();
 
 	// draw the munton and door frames
+	blendMode(BLEND);
 	door(0*480,0);
 	door(1*480,0);
 	door(2*480,0);
