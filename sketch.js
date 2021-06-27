@@ -27,16 +27,16 @@ function setup()
 	colors.push( color(0,0,255,180) );
 	//colors.push( color(0,0,0,250) );
 
-	rects.push(new MovingRect());
-	rects.push(new MovingRect());
-	rects.push(new MovingRect());
-	rects.push(new MovingRect());
-	rects.push(new MovingRect());
-	rects.push(new MovingRect());
-	rects.push(new MovingRect());
-	rects.push(new MovingRect());
-	rects.push(new MovingRect());
-	rects.push(new MovingRect());
+	rects.push(new MovingRect(0));
+	rects.push(new MovingRect(1));
+	rects.push(new MovingRect(2));
+	rects.push(new MovingRect(3));
+	rects.push(new MovingRect(4));
+	rects.push(new MovingRect(5));
+	rects.push(new MovingRect(6));
+	rects.push(new MovingRect(7));
+	rects.push(new MovingRect(8));
+	rects.push(new MovingRect(9));
 }
 
 //function keyReleased() { }
@@ -127,17 +127,17 @@ new_action()
 }
 
 // something lined up with a square
-random_x() { return Math.floor(Math.random() * 16) * 1920 / 16 }
-random_y() { return Math.floor(Math.random() * 6) * 1080 / 6 }
-random_w() { return Math.floor(Math.random() * 8 + 1) * 1920 / 16 }
-random_h() { return Math.floor(Math.random() * 3 + 1) * 1080 / 6 }
+random_x() { return Math.floor(Math.random() * 15) * 1920 / 16 }
+random_y() { return Math.floor(Math.random() * 5) * 1080 / 6 }
+random_w() { return Math.floor(Math.random() * 4 + 1) * 1920 / 16 }
+random_h() { return Math.floor(Math.random() * 2 + 1) * 1080 / 6 }
 
-constructor() {
+constructor(i) {
 	this.new_x = this.x = this.random_x();
 	this.new_y = this.y = this.random_y();
 	this.new_w = this.w = this.random_w();
 	this.new_h = this.h = this.random_h();
-	this.color = colors.sample();
+	this.color = colors[i % colors.length]; // colors.sample();
 	this.sleep = 30;
 }
 
