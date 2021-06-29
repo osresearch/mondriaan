@@ -9,6 +9,7 @@ Array.prototype.sample = function () { return this[Math.floor(Math.random()*this
 // objects to be drawn
 let rects = [];
 let colors = [];
+let bright = 1;
 
 // default projection matrix
 let mat = [
@@ -16,6 +17,41 @@ let mat = [
 	0, 1, 0,
 	0, 0, 1,
 ];
+let invmat;
+
+// valid horizontal steps
+const dividers = [
+	0,
+	200,
+	501,
+	692,
+	1029,
+	1225,
+	1528,
+	1725,
+];
+
+/*
+ * outPts are the four corners of the projected rectangle.
+ */
+const outPts = [
+	[53,79],
+	[30,1022],
+	[1889,100],
+	[1932,985],
+];
+
+/*
+ * inPts are the four corners of the drawable region of the screen
+ * and do not change.
+ */
+const inPts = [
+	[0,0],
+	[0,1080],
+	[1920,0],
+	[1920,1080],
+];
+
 
 let tx = 0;
 let ty = 0;
@@ -80,6 +116,9 @@ function setup()
 	//createCanvas(windowWidth-10, windowHeight-10, WEBGL);
 	background(255);
 
+	// use the default outPts
+	mat = getAffine(inPts, outPts);
+	invmat = getAffine(outPts, inPts);
 
 	// some "Solid" colors
 	colors.push( color(255,0,0,250) );
@@ -119,13 +158,16 @@ function door(x,y)
 	skew_translate(x,y);
 	fill(0,0,0,100);
 	noStroke();
-	skew_rect(0,0,480,40);
-	skew_rect(0,1080-40,480,40);
-	skew_rect(0,0,20,1080);
-	skew_rect(480-20,0,20,1080);
-	skew_rect(480/2 - 5, 0, 10, 1080);
-	skew_rect(0,1080/3 - 5, 480, 10);
-	skew_rect(0,1080*2/3 - 5, 480, 10);
+/*
+	skew_rect(0,-40,480,40);
+	skew_rect(0,1080,480,40);
+	skew_rect(0,-40,20,1080);
+	skew_rect(480-20,-10,20,1080);
+	skew_rect(480/2 - 5, -10, 10, 1080);
+	skew_rect(0,1080/3, 480, 10);
+	skew_rect(0,1080*2/3, 480, 10);
+*/
+	skew_rect(-10,0,20,1080);
 	pop();
 	tx = ty = 0;
 }
@@ -228,9 +270,10 @@ new_action()
 }
 
 // something lined up with a square
-random_x() { return Math.floor(Math.random() * 15) * 1920 / 16 }
+//random_x() { return Math.floor(Math.random() * 15) * 1920 / 16 }
+random_x() { return dividers.sample(); }
 random_y() { return Math.floor(Math.random() * 5) * 1080 / 6 }
-random_w() { return Math.floor(Math.random() * 4 + 1) * 1920 / 16 }
+random_w() { return Math.floor(Math.random() * 4 + 1) * 200 }
 random_h() { return Math.floor(Math.random() * 2 + 1) * 1080 / 6 }
 
 constructor(i) {
@@ -249,8 +292,8 @@ function draw()
 	//translate(-width/2, -height/2);
 	blendMode(BLEND);
 
-	// white background
-	background(20);
+	// white or dark background
+	background(bright ? 255 : 40);
 
 	// adjust the scale so that the width is always 1920
 	scale(width / 1920);
@@ -285,10 +328,8 @@ function draw()
 
 	// draw the munton and door frames
 	blendMode(BLEND);
-	door(0*480,0);
-	door(1*480,0);
-	door(2*480,0);
-	door(3*480,0);
+	for(let x of dividers)
+		door(x,0);
 }
 
 function testAffine(x,y)
@@ -319,32 +360,12 @@ function testAffine(x,y)
 }
 
 
-/*
- * outPts are the four corners of the projected rectangle.
- */
-const outPts = [
-	[0,0],
-	[0,1080],
-	[1920,0],
-	[1920,1080],
-];
-
-/*
- * inPts are the four corners of the drawable region of the screen
- * and do not change.
- */
-const inPts = [
-	[0,0],
-	[0,1080],
-	[1920,0],
-	[1920,1080],
-];
-
 function corner_set(n,x,y)
 {
 	outPts[n][0] = x;
 	outPts[n][1] = y;
 	mat = getAffine(inPts, outPts);
+	invmat = getAffine(outPts, inPts);
 
 	console.log("corner", n, "x=", x, "y=", y, "mat=", mat);
 }
@@ -366,7 +387,19 @@ function mouseClicked(event)
 
 function keyPressed()
 {
-	console.log("key=", key);
+	//console.log("key=", key);
+
+	if (key == ' ') {
+		const s = 1920 / width;
+		const x = mouseX * s;
+		const y = mouseY * s;
+		const inv = apply_matrix(invmat, x, y);
+		console.log(x,y,inv[0], inv[1]);
+	}
+
+	if (key == 'b') {
+		bright = !bright;
+	}
 
 	if (key == 'f') {
 		const fs = fullscreen();
