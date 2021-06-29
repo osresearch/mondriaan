@@ -71,18 +71,6 @@ function getAffine(inPts, outPts)
 	const b = [u0, u1, u2, u3, v0, v1, v2, v3];
 
 	return math.lusolve(U, b).map((x) => x[0]);
-/*
-	const div = (x1-x2)*(y2-y3) - (x2-x3)*(y1-y2);
-
-	const a = ((u1-u2)*(y2-y3)-(u2-u3)*(y1-y2)) / +div;
-	const b = ((v1-v2)*(y2-y3)-(v2-v3)*(y1-y2)) / +div;
-	const c = ((u1-u2)*(x2-x3)-(u2-u3)*(x1-x2)) / -div;
-	const d = ((v1-v2)*(x2-x3)-(v2-v3)*(x1-x2)) / -div;
-	const e = u1 - a*x1 - c*y2 + (u0 - x0);
-	const f = v1 - b*x1 - d*y2 + (v0 - y0);
-
-	return [a,b,c,d,e,f];
-*/
 }
 
 function setup()
@@ -264,6 +252,10 @@ function draw()
 	// white background
 	background(20);
 
+	// adjust the scale so that the width is always 1920
+	scale(width / 1920);
+
+
 	// the matrix returned from the modifier is row major
 	//applyMatrix(mat[0][0], mat[3][0], mat[1][0], mat[4][0], mat[2][0], mat[5][0]);
 	//applyMatrix(mat[0], mat[3], mat[1], mat[4], mat[2], mat[5]);
@@ -277,9 +269,9 @@ function draw()
 // \  0  0  0 x3 y3  1 -x3*v3 -y3*v3 / \c21/ \v3/
 /*
 	applyMatrix(
-		mat[0], mat[1], mat[2], 0,
-		mat[3], mat[4], mat[5], 0,
-		mat[6], mat[7], 1, 0,
+		mat[0], mat[3], mat[6], 0,
+		mat[1], mat[4], mat[7], 0,
+		mat[2], mat[5], 1, 0,
 		0, 0, 0, 1
 	);
 */
@@ -302,7 +294,7 @@ function draw()
 function testAffine(x,y)
 {
 	const outPts = [
-		[x,y],
+		[0,0],
 		[0,1080],
 		[1920,0],
 		[1920,1080],
@@ -324,4 +316,65 @@ function testAffine(x,y)
 	}
 
 	return m;
+}
+
+
+/*
+ * outPts are the four corners of the projected rectangle.
+ */
+const outPts = [
+	[0,0],
+	[0,1080],
+	[1920,0],
+	[1920,1080],
+];
+
+/*
+ * inPts are the four corners of the drawable region of the screen
+ * and do not change.
+ */
+const inPts = [
+	[0,0],
+	[0,1080],
+	[1920,0],
+	[1920,1080],
+];
+
+function corner_set(n,x,y)
+{
+	outPts[n][0] = x;
+	outPts[n][1] = y;
+	mat = getAffine(inPts, outPts);
+
+	console.log("corner", n, "x=", x, "y=", y, "mat=", mat);
+}
+
+function mouseClicked(event)
+{
+	const s = 1920 / width;
+	const x = mouseX * s;
+	const y = mouseY * s;
+	const corner =
+		x < 1920/2 && y < 1080/2 ? 0 :
+		x < 1920/2 && y > 1080/2 ? 1 :
+		x > 1920/2 && y < 1080/2 ? 2 :
+		x > 1920/2 && y > 1080/2 ? 3 :
+		0;
+
+	corner_set(corner, x, y);
+}
+
+function keyPressed()
+{
+	console.log("key=", key);
+
+	if (key == 'f') {
+		const fs = fullscreen();
+		fullscreen(!fs);
+	}
+}
+
+function windowResized()
+{
+	resizeCanvas(windowWidth, windowHeight);
 }
