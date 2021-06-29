@@ -1,11 +1,10 @@
 ![Rear-projected on glass doros](images/demo.jpg)
 
-Mondrian Garage Door sketch
-===
+## Mondrian Garage Door projection mapping
 
 See it in action: https://osresearch.github.io/mondriaan/
 
-* Hit 'f' to toggle full screen mode.
+* Hit `f` to toggle full screen mode.
 * Hit `b` to toggle between bright and dark mode.
 * Click the four corners to align it to your wall.
 * Hover the mouse and hit space to log the UV space coordinates
@@ -15,6 +14,9 @@ See it in action: https://osresearch.github.io/mondriaan/
 The sizes and locations of the bars are specific to the installation.
 You can move them around by changing the `dividers` array to set
 change where they are.
+
+
+## Perspective Transformation and Alignment
 
 The XY drawing coordinates are translated into UV screen coordinates
 using a perspecive transform:
@@ -30,14 +32,14 @@ an alternate form:
 
 ```
 u * (1 + c20 * x + c21 * y) = (x * c00 + y * c01 + c02)
-u = x * c00 + y * c01 + c02 - u * c20 * x - u * c21 * y 
+u = x * c00 + y * c01 + c02 - c20 * x * v - c21 * y * v
 ```
 
 and
 
 ```
 v * (1 + c20 * x + c21 * y) = (x * c10 + y * c11 + c12)
-v = x * c10 + y * c11 + c12 - u * c20 * x - u * c21 * y 
+v = x * c10 + y * c11 + c12 - c20 * x * v - c21 * y * v
 ```
 
 This form makes it possible to produce a linear system
