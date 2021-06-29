@@ -10,6 +10,81 @@ Array.prototype.sample = function () { return this[Math.floor(Math.random()*this
 let rects = [];
 let colors = [];
 
+// default projection matrix
+let mat = [
+	1, 0, 0,
+	0, 1, 0,
+	0, 0, 1,
+];
+
+let tx = 0;
+let ty = 0;
+
+/*
+ * Compute the transform matrix to map four input canvas points in xy space
+ * (which are normally cartesian, but don't have to be) into
+ * four output screen points in uv space (which are typically a
+ * skewed quadralateral and can be clicked on screen).
+ */
+function getAffine(inPts, outPts)
+{
+	const x0 = inPts[0][0];
+	const x1 = inPts[1][0];
+	const x2 = inPts[2][0];
+	const x3 = inPts[3][0];
+
+	const y0 = inPts[0][1];
+	const y1 = inPts[1][1];
+	const y2 = inPts[2][1];
+	const y3 = inPts[3][1];
+
+	const u0 = outPts[0][0];
+	const u1 = outPts[1][0];
+	const u2 = outPts[2][0];
+	const u3 = outPts[3][0];
+
+	const v0 = outPts[0][1];
+	const v1 = outPts[1][1];
+	const v2 = outPts[2][1];
+	const v3 = outPts[3][1];
+
+// Coefficients are calculated by solving linear system:
+// / x0 y0  1  0  0  0 -x0*u0 -y0*u0 \ /c00\ /u0\
+// | x1 y1  1  0  0  0 -x1*u1 -y1*u1 | |c01| |u1|
+// | x2 y2  1  0  0  0 -x2*u2 -y2*u2 | |c02| |u2|
+// | x3 y3  1  0  0  0 -x3*u3 -y3*u3 |.|c10|=|u3|,
+// |  0  0  0 x0 y0  1 -x0*v0 -y0*v0 | |c11| |v0|
+// |  0  0  0 x1 y1  1 -x1*v1 -y1*v1 | |c12| |v1|
+// |  0  0  0 x2 y2  1 -x2*v2 -y2*v2 | |c20| |v2|
+// \  0  0  0 x3 y3  1 -x3*v3 -y3*v3 / \c21/ \v3/
+
+	const U = [
+		[x0, y0, 1, 0, 0, 0, -x0*u0, -y0*u0],
+		[x1, y1, 1, 0, 0, 0, -x1*u1, -y1*u1],
+		[x2, y2, 1, 0, 0, 0, -x2*u2, -y2*u2],
+		[x3, y3, 1, 0, 0, 0, -x3*u3, -y3*u3],
+		[0, 0, 0, x0, y0, 1, -x0*v0, -y0*v0],
+		[0, 0, 0, x1, y1, 1, -x1*v1, -y1*v1],
+		[0, 0, 0, x2, y2, 1, -x2*v2, -y2*v2],
+		[0, 0, 0, x3, y3, 1, -x3*v3, -y3*v3],
+	];
+	const b = [u0, u1, u2, u3, v0, v1, v2, v3];
+
+	return math.lusolve(U, b).map((x) => x[0]);
+/*
+	const div = (x1-x2)*(y2-y3) - (x2-x3)*(y1-y2);
+
+	const a = ((u1-u2)*(y2-y3)-(u2-u3)*(y1-y2)) / +div;
+	const b = ((v1-v2)*(y2-y3)-(v2-v3)*(y1-y2)) / +div;
+	const c = ((u1-u2)*(x2-x3)-(u2-u3)*(x1-x2)) / -div;
+	const d = ((v1-v2)*(x2-x3)-(v2-v3)*(x1-x2)) / -div;
+	const e = u1 - a*x1 - c*y2 + (u0 - x0);
+	const f = v1 - b*x1 - d*y2 + (v0 - y0);
+
+	return [a,b,c,d,e,f];
+*/
+}
+
 function setup()
 {
 	frameRate(25);
@@ -17,26 +92,32 @@ function setup()
 	//createCanvas(windowWidth-10, windowHeight-10, WEBGL);
 	background(255);
 
+
 	// some "Solid" colors
 	colors.push( color(255,0,0,250) );
 	colors.push( color(255,255,0,250) );
 	colors.push( color(0,0,255,250) );
 	// some "Softer" colors
-	colors.push( color(255,0,0,180) );
-	colors.push( color(255,255,0,180) );
-	colors.push( color(0,0,255,180) );
+	colors.push( color(255,0,0,100) );
+	colors.push( color(255,255,0,100) );
+	colors.push( color(0,0,255,100) );
 	//colors.push( color(0,0,0,250) );
 
 	rects.push(new MovingRect(0));
 	rects.push(new MovingRect(1));
 	rects.push(new MovingRect(2));
+
 	rects.push(new MovingRect(3));
 	rects.push(new MovingRect(4));
 	rects.push(new MovingRect(5));
+
 	rects.push(new MovingRect(6));
 	rects.push(new MovingRect(7));
 	rects.push(new MovingRect(8));
-	rects.push(new MovingRect(9));
+
+	//rects.push(new MovingRect(9));
+	//rects.push(new MovingRect(10));
+	//rects.push(new MovingRect(11));
 }
 
 //function keyReleased() { }
@@ -47,17 +128,18 @@ function setup()
 function door(x,y)
 {
 	push();
-	translate(x,y);
+	skew_translate(x,y);
 	fill(0,0,0,100);
 	noStroke();
-	rect(0,0,480,40);
-	rect(0,1080-40,480,40);
-	rect(0,0,20,1080);
-	rect(480-20,0,20,1080);
-	rect(480/2 - 5, 0, 10, 1080);
-	rect(0,1080/3 - 5, 480, 10);
-	rect(0,1080*2/3 - 5, 480, 10);
+	skew_rect(0,0,480,40);
+	skew_rect(0,1080-40,480,40);
+	skew_rect(0,0,20,1080);
+	skew_rect(480-20,0,20,1080);
+	skew_rect(480/2 - 5, 0, 10, 1080);
+	skew_rect(0,1080/3 - 5, 480, 10);
+	skew_rect(0,1080*2/3 - 5, 480, 10);
 	pop();
+	tx = ty = 0;
 }
 
 /*
@@ -71,6 +153,37 @@ function door(x,y)
  * 
  */
 
+function apply_matrix(m,x,y)
+{
+	const z = x * m[6] + y * m[7] + 1;
+
+	return [
+		(x * m[0] + y * m[1] + m[2]) / z,
+		(x * m[3] + y * m[4] + m[5]) / z,
+	];
+}
+
+function skew_translate(x,y)
+{
+	tx = x;
+	ty = y;
+}
+
+function skew_vertex(x,y)
+{
+	const p = apply_matrix(mat, x+tx, y+ty);
+	vertex(p[0], p[1]);
+}
+
+function skew_rect(x,y,w,h)
+{
+	beginShape();
+	skew_vertex(x,y);
+	skew_vertex(x+w,y);
+	skew_vertex(x+w,y+h);
+	skew_vertex(x,y+h);
+	endShape(CLOSE);
+}
 
 class MovingRect
 {
@@ -82,7 +195,7 @@ draw() {
 
 	fill(this.color);
 
-	rect(this.x, this.y, this.w, this.h);
+	skew_rect(this.x, this.y, this.w, this.h);
 }
 
 update() {
@@ -145,12 +258,33 @@ constructor(i) {
 
 function draw()
 {
-	// white background
-	//createCanvas(windowWidth-10, windowHeight-10);
+	//translate(-width/2, -height/2);
 	blendMode(BLEND);
-	background(255,255,255);
 
-	blendMode(MULTIPLY);
+	// white background
+	background(20);
+
+	// the matrix returned from the modifier is row major
+	//applyMatrix(mat[0][0], mat[3][0], mat[1][0], mat[4][0], mat[2][0], mat[5][0]);
+	//applyMatrix(mat[0], mat[3], mat[1], mat[4], mat[2], mat[5]);
+// / x0 y0  1  0  0  0 -x0*u0 -y0*u0 \ /c00\ /u0\
+// | x1 y1  1  0  0  0 -x1*u1 -y1*u1 | |c01| |u1|
+// | x2 y2  1  0  0  0 -x2*u2 -y2*u2 | |c02| |u2|
+// | x3 y3  1  0  0  0 -x3*u3 -y3*u3 |.|c10|=|u3|,
+// |  0  0  0 x0 y0  1 -x0*v0 -y0*v0 | |c11| |v0|
+// |  0  0  0 x1 y1  1 -x1*v1 -y1*v1 | |c12| |v1|
+// |  0  0  0 x2 y2  1 -x2*v2 -y2*v2 | |c20| |v2|
+// \  0  0  0 x3 y3  1 -x3*v3 -y3*v3 / \c21/ \v3/
+/*
+	applyMatrix(
+		mat[0], mat[1], mat[2], 0,
+		mat[3], mat[4], mat[5], 0,
+		mat[6], mat[7], 1, 0,
+		0, 0, 0, 1
+	);
+*/
+
+	//blendMode(MULTIPLY);
 	// adjust the scale so that the frame is 1920x1080
 	//scale(1920 / width);
 
@@ -163,4 +297,31 @@ function draw()
 	door(1*480,0);
 	door(2*480,0);
 	door(3*480,0);
+}
+
+function testAffine(x,y)
+{
+	const outPts = [
+		[x,y],
+		[0,1080],
+		[1920,0],
+		[1920,1080],
+	];
+
+	const inPts = [
+		[0,0],
+		[0,1080],
+		[1920,0],
+		[1920,1080],
+	];
+
+	const m = getAffine(inPts, outPts);
+	console.log(m);
+
+	for(let i = 0 ; i < 4; i++)
+	{
+		console.log(apply_matrix(m, inPts[i][0], inPts[i][1]));
+	}
+
+	return m;
 }
