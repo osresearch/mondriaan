@@ -9,7 +9,12 @@ Array.prototype.sample = function () { return this[Math.floor(Math.random()*this
 // objects to be drawn
 let rects = [];
 let colors = [];
-let bright = 1;
+let bright = 0;
+const brightness = [ 255, 128, 64, 0 ];
+
+
+//const smooth = 128; // slow, but noticable
+//let smooth = 128;
 
 // default projection matrix
 let mat = [
@@ -35,10 +40,10 @@ const dividers = [
  * outPts are the four corners of the projected rectangle.
  */
 const outPts = [
-	[53,79],
-	[30,1022],
-	[1889,100],
-	[1932,985],
+	[51,9],
+	[13,937],
+	[1873,21],
+	[1912,904],
 ];
 
 /*
@@ -125,9 +130,9 @@ function setup()
 	colors.push( color(255,255,0,250) );
 	colors.push( color(0,0,255,250) );
 	// some "Softer" colors
-	colors.push( color(255,0,0,100) );
-	colors.push( color(255,255,0,100) );
-	colors.push( color(0,0,255,100) );
+	colors.push( color(255,0,0,200) );
+	colors.push( color(255,255,0,200) );
+	colors.push( color(0,0,255,200) );
 	//colors.push( color(0,0,0,250) );
 
 	rects.push(new MovingRect(0));
@@ -221,7 +226,7 @@ draw() {
 	this.update();
 
 	strokeWeight(15);
-	stroke(0);
+	stroke(20);
 
 	fill(this.color);
 
@@ -238,8 +243,9 @@ update() {
 		return this.new_action();
 	}
 
+	const smooth = this.smooth;
+
 	// translate and scale, smoothly easing into the new parameter
-	const smooth = 128;
 	this.x = (this.x * smooth + this.new_x) / (smooth + 1);
 	this.y = (this.y * smooth + this.new_y) / (smooth + 1);
 	this.w = (this.w * smooth + this.new_w) / (smooth + 1);
@@ -266,6 +272,7 @@ new_action()
 		this.new_w = this.random_w();
 	if (action == 7)
 		this.new_h = this.random_h();
+
 	//console.log("NEW ACTION", action, this);
 }
 
@@ -283,6 +290,7 @@ constructor(i) {
 	this.new_h = this.h = this.random_h();
 	this.color = colors[i % colors.length]; // colors.sample();
 	this.sleep = 30;
+	this.smooth = Math.random() * 128 + 64;
 }
 
 }
@@ -293,7 +301,7 @@ function draw()
 	blendMode(BLEND);
 
 	// white or dark background
-	background(bright ? 255 : 40);
+	background(brightness[bright]);
 
 	// adjust the scale so that the width is always 1920
 	scale(width / 1920);
@@ -398,7 +406,7 @@ function keyPressed()
 	}
 
 	if (key == 'b') {
-		bright = !bright;
+		bright = (bright + 1) % brightness.length;
 	}
 
 	if (key == 'f') {
@@ -409,5 +417,5 @@ function keyPressed()
 
 function windowResized()
 {
-	resizeCanvas(windowWidth, windowHeight);
+	resizeCanvas(windowWidth-0, windowHeight-4);
 }
