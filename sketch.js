@@ -12,6 +12,8 @@ let colors = [];
 let bright = 0;
 const brightness = [ 255, 128, 64, 0 ];
 
+let draw_matrix = false;
+
 
 //const smooth = 128; // slow, but noticable
 //let smooth = 128;
@@ -22,7 +24,6 @@ let mat = [
 	0, 1, 0,
 	0, 0, 1,
 ];
-let invmat;
 
 // valid horizontal steps
 const dividers = [
@@ -40,10 +41,16 @@ const dividers = [
  * outPts are the four corners of the projected rectangle.
  */
 const outPts = [
+/*
 	[51,9],
 	[13,937],
 	[1873,21],
 	[1912,904],
+*/
+	[100,50],
+	[10,900],
+	[1800, 20],
+	[1900, 810],
 ];
 
 /*
@@ -66,8 +73,16 @@ let ty = 0;
  * (which are normally cartesian, but don't have to be) into
  * four output screen points in uv space (which are typically a
  * skewed quadralateral and can be clicked on screen).
+ *
+ *      c00*xi + c01*yi + c02
+ * ui = ---------------------
+ *      c20*xi + c21*yi + c22
+ *
+ *      c10*xi + c11*yi + c12
+ * vi = ---------------------
+ *      c20*xi + c21*yi + c22
  */
-function getAffine(inPts, outPts)
+function get_projection(inPts, outPts)
 {
 	const x0 = inPts[0][0];
 	const x1 = inPts[1][0];
@@ -111,19 +126,32 @@ function getAffine(inPts, outPts)
 	];
 	const b = [u0, u1, u2, u3, v0, v1, v2, v3];
 
-	return math.lusolve(U, b).map((x) => x[0]);
+/*
+ * return is c00, c01, c02, c10, c11, c12, c20, c21
+ *
+ * where:
+ *
+ * ui = c00*xi + c01*yi + c02
+ * vi = c10*xi + c11*yi + c12
+ * zi = c20*xi + c21*yi + c22
+ *
+ * note that c22 is always 1
+ */
+	let m = math.lusolve(U, b).map((x) => x[0]);
+	m.push(1); // c22 = 1
+
+	return m;
 }
 
 function setup()
 {
 	frameRate(25);
-	createCanvas(windowWidth-10, windowHeight-10);
-	//createCanvas(windowWidth-10, windowHeight-10, WEBGL);
+	//createCanvas(windowWidth-10, windowHeight-10);
+	createCanvas(windowWidth-10, windowHeight-10, WEBGL);
 	background(255);
 
 	// use the default outPts
-	mat = getAffine(inPts, outPts);
-	invmat = getAffine(outPts, inPts);
+	mat = get_projection(inPts, outPts);
 
 	// some "Solid" colors
 	colors.push( color(255,0,0,250) );
@@ -160,21 +188,11 @@ function setup()
 function door(x,y)
 {
 	push();
-	skew_translate(x,y);
+	translate(x,y);
 	fill(0,0,0,100);
 	noStroke();
-/*
-	skew_rect(0,-40,480,40);
-	skew_rect(0,1080,480,40);
-	skew_rect(0,-40,20,1080);
-	skew_rect(480-20,-10,20,1080);
-	skew_rect(480/2 - 5, -10, 10, 1080);
-	skew_rect(0,1080/3, 480, 10);
-	skew_rect(0,1080*2/3, 480, 10);
-*/
-	skew_rect(-10,0,20,1080);
+	rect(-10,0,20,1080);
 	pop();
-	tx = ty = 0;
 }
 
 /*
@@ -188,49 +206,21 @@ function door(x,y)
  * 
  */
 
-function apply_matrix(m,x,y)
-{
-	const z = x * m[6] + y * m[7] + 1;
-
-	return [
-		(x * m[0] + y * m[1] + m[2]) / z,
-		(x * m[3] + y * m[4] + m[5]) / z,
-	];
-}
-
-function skew_translate(x,y)
-{
-	tx = x;
-	ty = y;
-}
-
-function skew_vertex(x,y)
-{
-	const p = apply_matrix(mat, x+tx, y+ty);
-	vertex(p[0], p[1]);
-}
-
-function skew_rect(x,y,w,h)
-{
-	beginShape();
-	skew_vertex(x,y);
-	skew_vertex(x+w,y);
-	skew_vertex(x+w,y+h);
-	skew_vertex(x,y+h);
-	endShape(CLOSE);
-}
 
 class MovingRect
 {
 draw() {
 	this.update();
 
+	push();
+	translate(0,0,this.z);
 	strokeWeight(15);
 	stroke(20);
 
 	fill(this.color);
 
-	skew_rect(this.x, this.y, this.w, this.h);
+	rect(this.x, this.y, this.w, this.h);
+	pop();
 }
 
 update() {
@@ -288,6 +278,7 @@ constructor(i) {
 	this.new_y = this.y = this.random_y();
 	this.new_w = this.w = this.random_w();
 	this.new_h = this.h = this.random_h();
+	this.z = Math.random();
 	this.color = colors[i % colors.length]; // colors.sample();
 	this.sleep = 30;
 	this.smooth = Math.random() * 128 + 64;
@@ -295,37 +286,58 @@ constructor(i) {
 
 }
 
+function preload() {
+	mono_font = loadFont('IBMPlexMono-Bold.ttf');
+}
+
 function draw()
 {
-	//translate(-width/2, -height/2);
 	blendMode(BLEND);
 
 	// white or dark background
 	background(brightness[bright]);
 
-	// adjust the scale so that the width is always 1920
-	scale(width / 1920);
+	// and draw the outpoint matrix near the bottom
+	if (draw_matrix)
+	{
+		push();
+		fill(0,0,255);
+		textFont(mono_font, 30);
+		const s = "[" +
+			"[" + outPts[0][0] + "," + outPts[0][1] + "]," +
+			"[" + outPts[1][0] + "," + outPts[1][1] + "]," +
+			"[" + outPts[2][0] + "," + outPts[2][1] + "]," +
+			"[" + outPts[3][0] + "," + outPts[3][1] + "]," +
+			"]";
+		text(s, -width/2, height/2-20);
+		pop();
+	}
 
-
-	// the matrix returned from the modifier is row major
-	//applyMatrix(mat[0][0], mat[3][0], mat[1][0], mat[4][0], mat[2][0], mat[5][0]);
-	//applyMatrix(mat[0], mat[3], mat[1], mat[4], mat[2], mat[5]);
-// / x0 y0  1  0  0  0 -x0*u0 -y0*u0 \ /c00\ /u0\
-// | x1 y1  1  0  0  0 -x1*u1 -y1*u1 | |c01| |u1|
-// | x2 y2  1  0  0  0 -x2*u2 -y2*u2 | |c02| |u2|
-// | x3 y3  1  0  0  0 -x3*u3 -y3*u3 |.|c10|=|u3|,
-// |  0  0  0 x0 y0  1 -x0*v0 -y0*v0 | |c11| |v0|
-// |  0  0  0 x1 y1  1 -x1*v1 -y1*v1 | |c12| |v1|
-// |  0  0  0 x2 y2  1 -x2*v2 -y2*v2 | |c20| |v2|
-// \  0  0  0 x3 y3  1 -x3*v3 -y3*v3 / \c21/ \v3/
 /*
+ * matrix is c00, c01, c02, c10, c11, c12, c20, c21, c22
+ * ui = c00*xi + c01*yi + c02
+ * vi = c10*xi + c11*yi + c12
+ * zi = c20*xi + c21*yi + c22
+ */
 	applyMatrix(
-		mat[0], mat[3], mat[6], 0,
-		mat[1], mat[4], mat[7], 0,
-		mat[2], mat[5], 1, 0,
-		0, 0, 0, 1
-	);
-*/
+		mat[0], mat[3], 0, mat[6],
+		mat[1], mat[4], 0, mat[7],
+		0,      0,      1, 0,
+		mat[2], mat[5], 0, mat[8]);
+
+	// draw a faint outline rectangle
+	if (draw_matrix)
+	{
+		push();
+		beginShape();
+		vertex(inPts[0][0], inPts[0][1]);
+		vertex(inPts[1][0], inPts[1][1]);
+		vertex(inPts[3][0], inPts[3][1]);
+		vertex(inPts[2][0], inPts[2][1]);
+		endShape(CLOSE);
+		pop();
+	}
+
 
 	//blendMode(MULTIPLY);
 	// adjust the scale so that the frame is 1920x1080
@@ -338,57 +350,31 @@ function draw()
 	blendMode(BLEND);
 	for(let x of dividers)
 		door(x,0);
-}
 
-function testAffine(x,y)
-{
-	const outPts = [
-		[0,0],
-		[0,1080],
-		[1920,0],
-		[1920,1080],
-	];
-
-	const inPts = [
-		[0,0],
-		[0,1080],
-		[1920,0],
-		[1920,1080],
-	];
-
-	const m = getAffine(inPts, outPts);
-	console.log(m);
-
-	for(let i = 0 ; i < 4; i++)
-	{
-		console.log(apply_matrix(m, inPts[i][0], inPts[i][1]));
-	}
-
-	return m;
 }
 
 
 function corner_set(n,x,y)
 {
-	outPts[n][0] = x;
-	outPts[n][1] = y;
-	mat = getAffine(inPts, outPts);
-	invmat = getAffine(outPts, inPts);
+	outPts[n][0] = int(x);
+	outPts[n][1] = int(y);
+	mat = get_projection(inPts, outPts);
 
 	console.log("corner", n, "x=", x, "y=", y, "mat=", mat);
 }
 
 function mouseClicked(event)
 {
-	const s = 1920 / width;
-	const x = mouseX * s;
-	const y = mouseY * s;
+	// in webgl mode (0,0) is the *center* of the screen
+	const x = mouseX - width/2;
+	const y = mouseY - height/2;
 	const corner =
-		x < 1920/2 && y < 1080/2 ? 0 :
-		x < 1920/2 && y > 1080/2 ? 1 :
-		x > 1920/2 && y < 1080/2 ? 2 :
-		x > 1920/2 && y > 1080/2 ? 3 :
+		x < 0 && y < 0 ? 0 : 
+		x < 0 && y > 0 ? 1 : 
+		x > 0 && y < 0 ? 2 : 
+		x > 0 && y > 0 ? 3 : 
 		0;
+		
 
 	corner_set(corner, x, y);
 }
@@ -398,11 +384,8 @@ function keyPressed()
 	//console.log("key=", key);
 
 	if (key == ' ') {
-		const s = 1920 / width;
-		const x = mouseX * s;
-		const y = mouseY * s;
-		const inv = apply_matrix(invmat, x, y);
-		console.log(x,y,inv[0], inv[1]);
+		draw_matrix = !draw_matrix;
+		console.log(...outPts);
 	}
 
 	if (key == 'b') {
