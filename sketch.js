@@ -41,10 +41,10 @@ const dividers = [
  * outPts are the four corners of the projected rectangle.
  */
 const outPts = [
-	[-658, -463],
-	[-797, 423],
-	[703, -308],
-	[818,454],
+[-1170, -633],
+[-1235, 610],
+[1253, -608],
+[1285, 574],
 ];
 
 /*
