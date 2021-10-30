@@ -41,16 +41,10 @@ const dividers = [
  * outPts are the four corners of the projected rectangle.
  */
 const outPts = [
-/*
-	[51,9],
-	[13,937],
-	[1873,21],
-	[1912,904],
-*/
-	[100,50],
-	[10,900],
-	[1800, 20],
-	[1900, 810],
+	[-658, -463],
+	[-797, 423],
+	[703, -308],
+	[818,454],
 ];
 
 /*
@@ -203,7 +197,7 @@ function door(x,y)
  * In between each motion the rectangle sleeps for a while.
  *
  * Color is always red, blue, or yellow.
- * 
+ *
  */
 
 
@@ -369,10 +363,10 @@ function mouseClicked(event)
 	const x = mouseX - width/2;
 	const y = mouseY - height/2;
 	const corner =
-		x < 0 && y < 0 ? 0 : 
-		x < 0 && y > 0 ? 1 : 
-		x > 0 && y < 0 ? 2 : 
-		x > 0 && y > 0 ? 3 : 
+		x < 0 && y < 0 ? 0 :
+		x < 0 && y > 0 ? 1 :
+		x > 0 && y < 0 ? 2 :
+		x > 0 && y > 0 ? 3 :
 		0;
 		
 
