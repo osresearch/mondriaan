@@ -18,13 +18,6 @@ let draw_matrix = false;
 //const smooth = 128; // slow, but noticable
 //let smooth = 128;
 
-// default projection matrix
-let mat = [
-	1, 0, 0,
-	0, 1, 0,
-	0, 0, 1,
-];
-
 // valid horizontal steps
 const dividers = [
 	0,
@@ -40,102 +33,17 @@ const dividers = [
 /*
  * outPts are the four corners of the projected rectangle.
  */
-const outPts = [
-[-1170, -633],
-[-1235, 610],
-[1253, -608],
-[1285, 574],
-];
-
-/*
- * inPts are the four corners of the drawable region of the screen
- * and do not change.
- */
-const inPts = [
-	[0,0],
-	[0,1080],
-	[1920,0],
-	[1920,1080],
-];
-
+let mat = new ProjectionMatrix([
+	[-1170, -633],
+	[-1235, 610],
+	[1253, -608],
+	[1285, 574],
+]);
+console.log(mat);
 
 let tx = 0;
 let ty = 0;
 
-/*
- * Compute the transform matrix to map four input canvas points in xy space
- * (which are normally cartesian, but don't have to be) into
- * four output screen points in uv space (which are typically a
- * skewed quadralateral and can be clicked on screen).
- *
- *      c00*xi + c01*yi + c02
- * ui = ---------------------
- *      c20*xi + c21*yi + c22
- *
- *      c10*xi + c11*yi + c12
- * vi = ---------------------
- *      c20*xi + c21*yi + c22
- */
-function get_projection(inPts, outPts)
-{
-	const x0 = inPts[0][0];
-	const x1 = inPts[1][0];
-	const x2 = inPts[2][0];
-	const x3 = inPts[3][0];
-
-	const y0 = inPts[0][1];
-	const y1 = inPts[1][1];
-	const y2 = inPts[2][1];
-	const y3 = inPts[3][1];
-
-	const u0 = outPts[0][0];
-	const u1 = outPts[1][0];
-	const u2 = outPts[2][0];
-	const u3 = outPts[3][0];
-
-	const v0 = outPts[0][1];
-	const v1 = outPts[1][1];
-	const v2 = outPts[2][1];
-	const v3 = outPts[3][1];
-
-// Coefficients are calculated by solving linear system:
-// / x0 y0  1  0  0  0 -x0*u0 -y0*u0 \ /c00\ /u0\
-// | x1 y1  1  0  0  0 -x1*u1 -y1*u1 | |c01| |u1|
-// | x2 y2  1  0  0  0 -x2*u2 -y2*u2 | |c02| |u2|
-// | x3 y3  1  0  0  0 -x3*u3 -y3*u3 |.|c10|=|u3|,
-// |  0  0  0 x0 y0  1 -x0*v0 -y0*v0 | |c11| |v0|
-// |  0  0  0 x1 y1  1 -x1*v1 -y1*v1 | |c12| |v1|
-// |  0  0  0 x2 y2  1 -x2*v2 -y2*v2 | |c20| |v2|
-// \  0  0  0 x3 y3  1 -x3*v3 -y3*v3 / \c21/ \v3/
-
-	const U = [
-		[x0, y0, 1, 0, 0, 0, -x0*u0, -y0*u0],
-		[x1, y1, 1, 0, 0, 0, -x1*u1, -y1*u1],
-		[x2, y2, 1, 0, 0, 0, -x2*u2, -y2*u2],
-		[x3, y3, 1, 0, 0, 0, -x3*u3, -y3*u3],
-		[0, 0, 0, x0, y0, 1, -x0*v0, -y0*v0],
-		[0, 0, 0, x1, y1, 1, -x1*v1, -y1*v1],
-		[0, 0, 0, x2, y2, 1, -x2*v2, -y2*v2],
-		[0, 0, 0, x3, y3, 1, -x3*v3, -y3*v3],
-	];
-	const b = [u0, u1, u2, u3, v0, v1, v2, v3];
-
-/*
- * return is c00, c01, c02, c10, c11, c12, c20, c21
- *
- * where:
- *
- * ui = c00*xi + c01*yi + c02
- * vi = c10*xi + c11*yi + c12
- * zi = c20*xi + c21*yi + c22
- *
- * note that c22 is always 1
- */
-	let m = math.lusolve(U, b).map((x) => x[0]);
-	m.push(1); // c22 = 1
-
-	return m;
-}
 
 function setup()
 {
@@ -143,9 +51,6 @@ function setup()
 	//createCanvas(windowWidth-10, windowHeight-10);
 	createCanvas(windowWidth-10, windowHeight-10, WEBGL);
 	background(255);
-
-	// use the default outPts
-	mat = get_projection(inPts, outPts);
 
 	// some "Solid" colors
 	colors.push( color(255,0,0,250) );
@@ -307,35 +212,7 @@ function draw()
 		pop();
 	}
 
-/*
- * matrix is c00, c01, c02, c10, c11, c12, c20, c21, c22
- * ui = c00*xi + c01*yi + c02
- * vi = c10*xi + c11*yi + c12
- * zi = c20*xi + c21*yi + c22
- */
-	applyMatrix(
-		mat[0], mat[3], 0, mat[6],
-		mat[1], mat[4], 0, mat[7],
-		0,      0,      1, 0,
-		mat[2], mat[5], 0, mat[8]);
-
-	// draw a faint outline rectangle
-	if (draw_matrix)
-	{
-		push();
-		beginShape();
-		vertex(inPts[0][0], inPts[0][1]);
-		vertex(inPts[1][0], inPts[1][1]);
-		vertex(inPts[3][0], inPts[3][1]);
-		vertex(inPts[2][0], inPts[2][1]);
-		endShape(CLOSE);
-		pop();
-	}
-
-
-	//blendMode(MULTIPLY);
-	// adjust the scale so that the frame is 1920x1080
-	//scale(1920 / width);
+	mat.apply(draw_matrix ? 2 : 0);
 
 	for(r of rects)
 		r.draw();
@@ -347,30 +224,21 @@ function draw()
 
 }
 
-
-function corner_set(n,x,y)
-{
-	outPts[n][0] = int(x);
-	outPts[n][1] = int(y);
-	mat = get_projection(inPts, outPts);
-
-	console.log("corner", n, "x=", x, "y=", y, "mat=", mat);
-}
-
 function mouseClicked(event)
 {
 	// in webgl mode (0,0) is the *center* of the screen
 	const x = mouseX - width/2;
 	const y = mouseY - height/2;
-	const corner =
+	const n =
 		x < 0 && y < 0 ? 0 :
 		x < 0 && y > 0 ? 1 :
 		x > 0 && y < 0 ? 2 :
 		x > 0 && y > 0 ? 3 :
 		0;
 		
-
-	corner_set(corner, x, y);
+	mat.outPts[n][0] = int(x);
+	mat.outPts[n][1] = int(y);
+	mat.update();
 }
 
 function keyPressed()
