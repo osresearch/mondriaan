@@ -12,8 +12,6 @@ let colors = [];
 let bright = 0;
 const brightness = [ 255, 128, 64, 0 ];
 
-let draw_matrix = false;
-
 
 //const smooth = 128; // slow, but noticable
 //let smooth = 128;
@@ -38,8 +36,7 @@ let mat = new ProjectionMatrix([
 	[-1235, 610],
 	[1253, -608],
 	[1285, 574],
-]);
-console.log(mat);
+], null, "mondriaan");
 
 let tx = 0;
 let ty = 0;
@@ -51,6 +48,7 @@ function setup()
 	//createCanvas(windowWidth-10, windowHeight-10);
 	createCanvas(windowWidth-10, windowHeight-10, WEBGL);
 	background(255);
+	mat.load();
 
 	// some "Solid" colors
 	colors.push( color(255,0,0,250) );
@@ -196,23 +194,25 @@ function draw()
 	// white or dark background
 	background(brightness[bright]);
 
+	// project to mouse points to uv
+	const uv = mat.project(mouseX - width/2, mouseY - height/2);
+
 	// and draw the outpoint matrix near the bottom
-	if (draw_matrix)
+	if (mat.edit)
 	{
 		push();
 		fill(0,0,255);
 		textFont(mono_font, 30);
-		const s = "[" +
-			"[" + outPts[0][0] + "," + outPts[0][1] + "]," +
-			"[" + outPts[1][0] + "," + outPts[1][1] + "]," +
-			"[" + outPts[2][0] + "," + outPts[2][1] + "]," +
-			"[" + outPts[3][0] + "," + outPts[3][1] + "]," +
-			"]";
+
+		const s = int(uv[0]) + ", " + int(uv[1]);
 		text(s, -width/2, height/2-20);
 		pop();
 	}
 
-	mat.apply(draw_matrix ? 2 : 0);
+	mat.apply();
+
+	if (mat.edit)
+		mat.drawMouse();
 
 	for(r of rects)
 		r.draw();
@@ -226,6 +226,9 @@ function draw()
 
 function mouseClicked(event)
 {
+	if (!mat.edit)
+		return;
+
 	// in webgl mode (0,0) is the *center* of the screen
 	const x = mouseX - width/2;
 	const y = mouseY - height/2;
@@ -246,8 +249,7 @@ function keyPressed()
 	//console.log("key=", key);
 
 	if (key == ' ') {
-		draw_matrix = !draw_matrix;
-		console.log(...outPts);
+		mat.edit ^= 1;
 	}
 
 	if (key == 'b') {
