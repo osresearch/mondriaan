@@ -260,6 +260,10 @@ function keyPressed()
 		const fs = fullscreen();
 		fullscreen(!fs);
 	}
+
+	if (key == 's') {
+		mat.save();
+	}
 }
 
 function windowResized()
