@@ -19,13 +19,40 @@ const brightness = [ 255, 128, 64, 0 ];
 // valid horizontal steps
 const dividers = [
 	0,
-	200,
-	501,
-	692,
-	1029,
-	1225,
-	1528,
-	1725,
+	204,
+	504,
+	708,
+	1047,
+	1249,
+	1550,
+	1752,
+];
+const end_dividers = [
+	175,
+	377,
+	681,
+	884,
+	1221,
+	1424,
+	1723,
+	1920,
+];
+
+const h_dividers = [
+	0,
+	336/2,
+	372,
+	372 + 336/2,
+	736,
+	736 + 336/2
+];
+
+const h_end_dividers = [
+	336,
+	(336 + 765)/2,
+	765,
+	(765 + 1080)/2,
+	1080,
 ];
 
 /*
@@ -165,10 +192,27 @@ new_action()
 
 // something lined up with a square
 //random_x() { return Math.floor(Math.random() * 15) * 1920 / 16 }
-random_x() { return dividers.sample(); }
-random_y() { return Math.floor(Math.random() * 5) * 1080 / 6 }
-random_w() { return Math.floor(Math.random() * 4 + 1) * 200 }
-random_h() { return Math.floor(Math.random() * 2 + 1) * 1080 / 6 }
+random_x() { return dividers.sample() }
+random_y() { return h_dividers.sample() }
+random_w() {
+	// pick a random other divider and draw to that length
+	while(1)
+	{
+		let other_x = end_dividers.sample();
+		let w = other_x - this.x;
+		if (w > 0 && w < 812)
+			return w;
+	}
+}
+random_h() {
+	while(1)
+	{
+		let other_y = h_end_dividers.sample();
+		let h = other_y - this.y;
+		if (h > 50 && h < 500)
+			return h;
+	}
+}
 
 constructor(i) {
 	this.new_x = this.x = this.random_x();
