@@ -24,35 +24,37 @@ const dividers = [
 	708,
 	1047,
 	1249,
-	1550,
+	1541,
 	1752,
 ];
 const end_dividers = [
-	175,
-	377,
-	681,
-	884,
-	1221,
-	1424,
-	1723,
+	0,
+	202,
+	395,
+	693,
+	893,
+	1223,
+	1438,
+	1731,
 	1920,
 ];
 
 const h_dividers = [
-	0,
-	336/2,
-	372,
-	372 + 336/2,
-	736,
-	736 + 336/2
+	-10,
+	356/2,
+	356,
+	356 + (725 - 356)/2,
+	725,
+	725 + 336/2
 ];
 
 const h_end_dividers = [
-	336,
-	(336 + 765)/2,
-	765,
-	(765 + 1080)/2,
-	1080,
+	0,
+	356,
+	(356 + 725)/2,
+	725,
+	(725 + 1080)/2,
+	1080 + 10,
 ];
 
 /*
@@ -130,6 +132,19 @@ function door(x,y)
  *
  */
 
+function interpolate(x, divs)
+{
+	let xi = Math.floor(x);
+	let xf = x - xi;
+	if (xi < 0)
+		return divs[0];
+	if (xi >= divs.length-1)
+		return divs[divs.length-1];
+	let x0 = divs[xi + 0];
+	let x1 = divs[xi + 1];
+
+	return x0 + (x1 - x0) * xf;
+}
 
 class MovingRect
 {
@@ -143,7 +158,12 @@ draw() {
 
 	fill(this.color);
 
-	rect(this.x, this.y, this.w, this.h);
+	let x0 = interpolate(this.x, dividers);
+	let y0 = interpolate(this.y, h_dividers);
+	let x1 = interpolate(this.x + this.w, end_dividers);
+	let y1 = interpolate(this.y + this.h, h_end_dividers);
+
+	rect(x0, y0, x1 - x0, y1 - y0);
 	pop();
 }
 
@@ -166,10 +186,10 @@ update() {
 	this.h = (this.h * smooth + this.new_h) / (smooth + 1);
 
 	// if we're close enough, sleep for a little while
-	if (abs(this.new_x - this.x) < 1
-	&&  abs(this.new_y - this.y) < 1
-	&&  abs(this.new_w - this.w) < 1
-	&&  abs(this.new_h - this.h) < 1)
+	if (abs(this.new_x - this.x) < 0.01
+	&&  abs(this.new_y - this.y) < 0.01
+	&&  abs(this.new_w - this.w) < 0.01
+	&&  abs(this.new_h - this.h) < 0.01)
 		this.sleep = Math.floor(Math.random() * 100) + 30;
 }
 
@@ -192,26 +212,13 @@ new_action()
 
 // something lined up with a square
 //random_x() { return Math.floor(Math.random() * 15) * 1920 / 16 }
-random_x() { return dividers.sample() }
-random_y() { return h_dividers.sample() }
+random_x() { return Math.floor(Math.random() * (dividers.length + 0) - 0.5) }
+random_y() { return Math.floor(Math.random() * (h_dividers.length + 0) - 0.5) }
 random_w() {
-	// pick a random other divider and draw to that length
-	while(1)
-	{
-		let other_x = end_dividers.sample();
-		let w = other_x - this.x;
-		if (w > 0 && w < 812)
-			return w;
-	}
+	return Math.floor(Math.random() * 3 + 1);
 }
 random_h() {
-	while(1)
-	{
-		let other_y = h_end_dividers.sample();
-		let h = other_y - this.y;
-		if (h > 50 && h < 500)
-			return h;
-	}
+	return Math.floor(Math.random() * 2 + 1);
 }
 
 constructor(i) {
@@ -263,7 +270,7 @@ function draw()
 
 	// draw the munton and door frames
 	blendMode(BLEND);
-	for(let x of dividers)
+	for(let x of end_dividers)
 		door(x,0);
 
 }
